@@ -7,10 +7,10 @@ import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -24,6 +24,7 @@ public class VideoPlayerText extends Application {
     private ArrayList<String> text = new ArrayList();
     private int lineNumber = 0;
     private boolean playing = true;
+    private Font font = javafx.scene.text.Font.font("Arial", 42);
 
     public VideoPlayerText() {
 
@@ -95,13 +96,23 @@ public class VideoPlayerText extends Application {
                     break;
                 case DOWN:
                     lineNumber++;
+                    String strText = text.get(lineNumber);
+                    Text textNode = new Text(strText);
+                    textNode.setFont(font);
+                    double textWidth = textNode.getLayoutBounds().getWidth();
                     gc.clearRect(0,0, canvas.getWidth(), canvas.getHeight());
-                    gc.fillText(text.get(lineNumber), 200, 400);
+                    double xPos = (canvas.getWidth() - textWidth) / 2.0;
+                    gc.fillText(strText, xPos, 400);
                     break;
                 case UP:
                     lineNumber--;
+                    strText = text.get(lineNumber);
+                    textNode = new Text(strText);
+                    textNode.setFont(font);
+                    textWidth = textNode.getLayoutBounds().getWidth();
                     gc.clearRect(0,0, canvas.getWidth(), canvas.getHeight());
-                    gc.fillText(text.get(lineNumber), 200, 400);
+                    xPos = (canvas.getWidth() - textWidth) / 2.0;
+                    gc.fillText(strText, xPos, 400);
                     break;
                 case SPACE:
                     if (playing) {
@@ -116,7 +127,7 @@ public class VideoPlayerText extends Application {
         });
 
         // Set the title of the Stage
-        primaryStage.setTitle("Video Player with Drawing");
+        primaryStage.setTitle("Video Player with lyrics.");
 
         // Set the Scene to the Stage
         primaryStage.setScene(scene);
@@ -128,7 +139,7 @@ public class VideoPlayerText extends Application {
         mediaPlayer.play();
 
         gc.setFill(Color.RED);
-        gc.setFont(javafx.scene.text.Font.font("Arial", 36)); // Font size set to 36
+        gc.setFont(font); // Font size set to 36
     }
 
     public static void main(String[] args) {
