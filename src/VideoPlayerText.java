@@ -1,4 +1,6 @@
 import javafx.application.Application;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -11,6 +13,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -27,7 +30,9 @@ public class VideoPlayerText extends Application {
     private GraphicsContext gc;
     private Canvas canvas;
     private MediaPlayer mediaPlayer;
-    private double myHeight = 1000;
+    private final double myHeight = 600;
+    private MediaView mediaView;
+    private StackPane root;
 
     public VideoPlayerText() {
 
@@ -67,7 +72,7 @@ public class VideoPlayerText extends Application {
         mediaPlayer = new MediaPlayer(media);
 
         // Create a MediaView, which displays the video
-        MediaView mediaView = new MediaView(mediaPlayer);
+        mediaView = new MediaView(mediaPlayer);
 
         // Create a Canvas for drawing
         int w = media.getWidth();
@@ -83,14 +88,12 @@ public class VideoPlayerText extends Application {
 
         gc = canvas.getGraphicsContext2D();
 
-        StackPane root = new StackPane();
+        root = new StackPane();
         root.getChildren().addAll(mediaView, canvas);
 
         Scene scene = new Scene(root, 1800, myHeight);
 
-        scene.setOnKeyPressed(event -> {
-            handleKeys(event);
-        });
+        scene.setOnKeyPressed(this::handleKeys);
 
         // Set the title of the Stage
         primaryStage.setTitle("Video Player with lyrics.");
@@ -101,11 +104,20 @@ public class VideoPlayerText extends Application {
         // Show the Stage
         primaryStage.show();
 
-        // Play the video
+        mediaPlayer.currentTimeProperty().addListener((observable, oldValue, newValue) -> System.out.println(formatDuration(newValue)));
+
         mediaPlayer.play();
 
-        gc.setFill(Color.RED);
-        gc.setFont(font); // Font size set to 36
+        gc.setFill(Color.RED.darker());
+        gc.setFont(font);
+    }
+
+    private String formatDuration(Duration duration) {
+
+        int hours = (int) duration.toHours();
+        int minutes = (int) (duration.toMinutes() % 60);
+        int seconds = (int) (duration.toSeconds() % 60);
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds);
     }
 
     private void handleKeys(KeyEvent event) {
@@ -134,6 +146,17 @@ public class VideoPlayerText extends Application {
                     playing = true;
                 }
                 break;
+            case T:
+                mediaPlayer.seek(Duration.seconds(20));
+                break;
+            case Z:
+                /// TODO: check
+                mediaView.setScaleX(0.5); // Zoom in horizontally
+                mediaView.setScaleY(0.5); // Zoom in vertically
+                root = new StackPane();
+                root.getChildren().addAll(mediaView, canvas);
+                break;
+
         }
     }
 
@@ -147,7 +170,7 @@ public class VideoPlayerText extends Application {
         textNode = new Text(strText);
         textNode.setFont(font);
         textWidth = textNode.getLayoutBounds().getWidth();
-        gc.clearRect(0,0, canvas.getWidth(), canvas.getHeight());
+        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         xPos = (canvas.getWidth() - textWidth) / 2.0;
         gc.fillText(strText, xPos, myHeight - 360);
     }
