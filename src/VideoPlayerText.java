@@ -1,6 +1,4 @@
 import javafx.application.Application;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -15,15 +13,13 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 
 public class VideoPlayerText extends Application {
 
     private final ArrayList<String> text = new ArrayList();
+    private final int song = 0;
     private int lineNumber = 0;
     private boolean playing = true;
     private final Font font = javafx.scene.text.Font.font("Arial", 82);
@@ -33,28 +29,41 @@ public class VideoPlayerText extends Application {
     private final double myHeight = 600;
     private MediaView mediaView;
     private StackPane root;
+    private long runningTime = 0;
+    private BufferedWriter karaokeWriter = null;
 
     public VideoPlayerText() {
 
-        String filePath = "/Users/malvers/IdeaProjects/Dimenticare/Dimenticare.txt";
+        init(song);
+    }
+
+    private void init(int song) {
+
+        String theSong = "ThatWay";
+
+        String filePath = "/Users/malvers/IdeaProjects/Dimenticare/" + theSong + ".karaoke";
+        File file = new File(filePath);
+
+        if (!file.exists()) {
+            filePath = "/Users/malvers/IdeaProjects/Dimenticare/" + theSong + ".txt";
+            System.out.println("The song " + theSong + ".karaoke DOES NOT exist!");
+            initKaraokeWriter();
+        } else {
+            System.out.println("The song " + theSong + ".karaoke exists!");
+        }
 
         try {
-            // Create a FileReader object to read the file
+
             FileReader fileReader = new FileReader(filePath);
 
-            // Wrap the FileReader in a BufferedReader for efficient reading
             BufferedReader bufferedReader = new BufferedReader(fileReader);
 
-            // Read each line from the file until reaching the end of the file
             String line;
             while ((line = bufferedReader.readLine()) != null) {
                 text.add(line);
             }
-
-            // Close the BufferedReader
             bufferedReader.close();
         } catch (IOException e) {
-            // Handle exceptions, such as file not found or unable to read
             e.printStackTrace();
         }
     }
@@ -63,10 +72,14 @@ public class VideoPlayerText extends Application {
     public void start(Stage primaryStage) {
 
         // Path to the video file
-        String pathToFile = "/Users/malvers/IdeaProjects/Dimenticare/Dimenticarti è poco.mp4";
+
+        String theSong = "ThatWay";
+
+        String pathToFile = "/Users/malvers/IdeaProjects/Dimenticare/" + theSong + ".mp4";
 
         // Create a Media object
-        Media media = new Media(new File(pathToFile).toURI().toString());
+        File theFile = new File(pathToFile);
+        Media media = new Media(theFile.toURI().toString());
 
         // Create a MediaPlayer
         mediaPlayer = new MediaPlayer(media);
@@ -104,12 +117,28 @@ public class VideoPlayerText extends Application {
         // Show the Stage
         primaryStage.show();
 
-        mediaPlayer.currentTimeProperty().addListener((observable, oldValue, newValue) -> System.out.println(formatDuration(newValue)));
+        mediaPlayer.currentTimeProperty().addListener((observable, oldValue, newValue) -> runningTime = (long) newValue.toMillis());
 
         mediaPlayer.play();
 
         gc.setFill(Color.RED.darker());
         gc.setFont(font);
+    }
+
+    private void initKaraokeWriter() {
+
+        try {
+
+            File file = new File("/Users/malvers/IdeaProjects/Dimenticare/ThatWay.karaoke");
+
+            FileWriter fileWriter = new FileWriter(file);
+
+            karaokeWriter = new BufferedWriter(fileWriter);
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     private String formatDuration(Duration duration) {
@@ -126,11 +155,19 @@ public class VideoPlayerText extends Application {
             case Q:
             case W:
                 if (event.isMetaDown()) {
+                    try {
+                        if (karaokeWriter != null) {
+                            karaokeWriter.close();
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                     System.exit(1);
                 }
                 break;
             case DOWN:
                 lineNumber++;
+                System.out.println("run: " + runningTime);
                 setText();
                 break;
             case UP:
@@ -149,14 +186,6 @@ public class VideoPlayerText extends Application {
             case T:
                 mediaPlayer.seek(Duration.seconds(20));
                 break;
-            case Z:
-                /// TODO: check
-                mediaView.setScaleX(0.5); // Zoom in horizontally
-                mediaView.setScaleY(0.5); // Zoom in vertically
-                root = new StackPane();
-                root.getChildren().addAll(mediaView, canvas);
-                break;
-
         }
     }
 
@@ -173,6 +202,17 @@ public class VideoPlayerText extends Application {
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         xPos = (canvas.getWidth() - textWidth) / 2.0;
         gc.fillText(strText, xPos, myHeight - 360);
+
+        if (karaokeWriter == null) {
+            return;
+        }
+
+        try {
+            karaokeWriter.write(runningTime + "-#-" + strText);
+            karaokeWriter.newLine();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static void main(String[] args) {

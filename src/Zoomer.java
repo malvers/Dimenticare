@@ -40,6 +40,9 @@ public class Zoomer extends JButton {
                         break;
                     case KeyEvent.VK_DOWN:
                         zoomFactor /= 1.1;
+                        if (zoomFactor < initZoom) {
+                            zoomFactor = initZoom;
+                        }
                         break;
                     case KeyEvent.VK_ESCAPE:
                         zoomFactor = initZoom;
