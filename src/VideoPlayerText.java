@@ -18,59 +18,78 @@ import java.util.ArrayList;
 
 public class VideoPlayerText extends Application {
 
-    private final ArrayList<String> text = new ArrayList();
-    private final int song = 0;
+    private final ArrayList<String> lyrics = new ArrayList();
     private int lineNumber = 0;
-    private boolean playing = true;
+    private boolean playing = false;
     private final Font font = javafx.scene.text.Font.font("Arial", 82);
     private GraphicsContext gc;
     private Canvas canvas;
     private MediaPlayer mediaPlayer;
-    private final double myHeight = 600;
+    private final double myHeight = 1200;
     private MediaView mediaView;
     private StackPane root;
-    private long runningTime = 0;
+    private long runTime = 0;
     private BufferedWriter karaokeWriter = null;
+    private boolean recordingPossible = false;
+    private Stage primaryStage;
 
     public VideoPlayerText() {
 
-        init(song);
+        initLyricsOrKaraoke("ThatWay");
     }
 
-    private void init(int song) {
-
-        String theSong = "ThatWay";
+    private void initLyricsOrKaraoke(String theSong) {
 
         String filePath = "/Users/malvers/IdeaProjects/Dimenticare/" + theSong + ".karaoke";
         File file = new File(filePath);
 
+        /// Karaoke file does not exist
         if (!file.exists()) {
+
+            System.out.println("The karaoke file for the file " + file + " DOES NOT exist!");
+            recordingPossible = true;
+
+            /// create karaoke file
+            createKaraokeFile(filePath);
+
+            /// read the lyrics file
             filePath = "/Users/malvers/IdeaProjects/Dimenticare/" + theSong + ".txt";
-            System.out.println("The song " + theSong + ".karaoke DOES NOT exist!");
-            initKaraokeWriter();
+            readLyricsOrKaraokeFile(filePath);
+
         } else {
-            System.out.println("The song " + theSong + ".karaoke exists!");
+            /// read the karaoke file
+            filePath = "/Users/malvers/IdeaProjects/Dimenticare/" + theSong + ".karaoke";
+            System.out.println("The file " + filePath + " exists!");
+            readLyricsOrKaraokeFile(filePath);
         }
+    }
+
+    private void readLyricsOrKaraokeFile(String filePath) {
 
         try {
 
+            System.out.println("readLyricsOrKaraokeFile - filePath: " + filePath);
             FileReader fileReader = new FileReader(filePath);
 
             BufferedReader bufferedReader = new BufferedReader(fileReader);
+            System.out.println("buffered: " + bufferedReader);
 
             String line;
             while ((line = bufferedReader.readLine()) != null) {
-                text.add(line);
+                System.out.println("line: " + line);
+                lyrics.add(line);
             }
             bufferedReader.close();
+
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     @Override
-    public void start(Stage primaryStage) {
+    public void start(Stage primaryStageIn) {
 
+        primaryStage = primaryStageIn;
         // Path to the video file
 
         String theSong = "ThatWay";
@@ -91,7 +110,6 @@ public class VideoPlayerText extends Application {
         int w = media.getWidth();
         int h = media.getHeight();
 
-        System.out.println("w: " + w + " h: " + h);
         canvas = new Canvas(1800, myHeight);
 
         double scaleX = 1.32; // Scale factor for X-axis
@@ -108,28 +126,54 @@ public class VideoPlayerText extends Application {
 
         scene.setOnKeyPressed(this::handleKeys);
 
-        // Set the title of the Stage
-        primaryStage.setTitle("Video Player with lyrics.");
+        primaryStage.setTitle("Karaoke recorder and player ... press space to start");
 
-        // Set the Scene to the Stage
         primaryStage.setScene(scene);
 
-        // Show the Stage
         primaryStage.show();
 
-        mediaPlayer.currentTimeProperty().addListener((observable, oldValue, newValue) -> runningTime = (long) newValue.toMillis());
+        mediaPlayer.currentTimeProperty().addListener((observable, oldValue, newValue) -> {
 
-        mediaPlayer.play();
+            handlePlayKaraoke(newValue);
+        });
+
+//        mediaPlayer.play();
 
         gc.setFill(Color.RED.darker());
         gc.setFont(font);
     }
 
-    private void initKaraokeWriter() {
+    private void handlePlayKaraoke(Duration newValue) {
+
+        runTime = (long) newValue.toMillis();
+
+        if (recordingPossible) {
+            primaryStage.setTitle("RECORDING - runtime: " + runTime + " ms");
+            return;
+        }
+        primaryStage.setTitle("KARAOKE - runtime: " + runTime + " ms");
+
+        if (lineNumber >= lyrics.size()) {
+            return;
+        }
+
+        String theText = lyrics.get(lineNumber);
+        long timeStamp = Long.parseLong(theText.substring(0, theText.indexOf("-#-")));
+        System.out.println(lineNumber + " run: " + runTime + " time stamp: " + timeStamp + " - Text: " + theText);
+
+        if (runTime >= timeStamp) {
+            setText();
+            lineNumber++;
+        }
+    }
+
+    private void createKaraokeFile(String theSong) {
+
+        String filePath = "/Users/malvers/IdeaProjects/Dimenticare/" + theSong + ".karaoke";
 
         try {
 
-            File file = new File("/Users/malvers/IdeaProjects/Dimenticare/ThatWay.karaoke");
+            File file = new File(theSong);
 
             FileWriter fileWriter = new FileWriter(file);
 
@@ -166,13 +210,16 @@ public class VideoPlayerText extends Application {
                 }
                 break;
             case DOWN:
-                lineNumber++;
-                System.out.println("run: " + runningTime);
-                setText();
+                if (recordingPossible) {
+                    setText();
+                    lineNumber++;
+                }
                 break;
             case UP:
-                lineNumber--;
-                setText();
+                if (recordingPossible) {
+                    lineNumber--;
+                    setText();
+                }
                 break;
             case SPACE:
                 if (playing) {
@@ -191,24 +238,26 @@ public class VideoPlayerText extends Application {
 
     private void setText() {
 
-        String strText;
         Text textNode;
         double textWidth;
         double xPos;
-        strText = text.get(lineNumber);
+        String strText = lyrics.get(lineNumber);
+        if (!recordingPossible) {
+            strText = strText.substring(strText.indexOf("-#-") + 3);
+        }
         textNode = new Text(strText);
         textNode.setFont(font);
         textWidth = textNode.getLayoutBounds().getWidth();
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         xPos = (canvas.getWidth() - textWidth) / 2.0;
-        gc.fillText(strText, xPos, myHeight - 360);
+        gc.fillText(strText, xPos, myHeight - (myHeight/4));
 
         if (karaokeWriter == null) {
             return;
         }
 
         try {
-            karaokeWriter.write(runningTime + "-#-" + strText);
+            karaokeWriter.write(runTime + "-#-" + strText);
             karaokeWriter.newLine();
         } catch (IOException e) {
             throw new RuntimeException(e);
