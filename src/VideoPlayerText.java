@@ -32,13 +32,15 @@ public class VideoPlayerText extends Application {
     private BufferedWriter karaokeWriter = null;
     private boolean recordingPossible = false;
     private Stage primaryStage;
+    private String theSong = "ThatWay";
 
     public VideoPlayerText() {
 
-        initLyricsOrKaraoke("ThatWay");
+        theSong = "Dimeticarti";
+        initLyricsOrKaraoke();
     }
 
-    private void initLyricsOrKaraoke(String theSong) {
+    private void initLyricsOrKaraoke() {
 
         String filePath = "/Users/malvers/IdeaProjects/Dimenticare/" + theSong + ".karaoke";
         File file = new File(filePath);
@@ -53,7 +55,7 @@ public class VideoPlayerText extends Application {
             createKaraokeFile(filePath);
 
             /// read the lyrics file
-            filePath = "/Users/malvers/IdeaProjects/Dimenticare/" + theSong + ".txt";
+            filePath = "/Users/malvers/IdeaProjects/Dimenticare/" + theSong + ".lyrics";
             readLyricsOrKaraokeFile(filePath);
 
         } else {
@@ -92,8 +94,6 @@ public class VideoPlayerText extends Application {
         primaryStage = primaryStageIn;
         // Path to the video file
 
-        String theSong = "ThatWay";
-
         String pathToFile = "/Users/malvers/IdeaProjects/Dimenticare/" + theSong + ".mp4";
 
         // Create a Media object
@@ -107,9 +107,6 @@ public class VideoPlayerText extends Application {
         mediaView = new MediaView(mediaPlayer);
 
         // Create a Canvas for drawing
-        int w = media.getWidth();
-        int h = media.getHeight();
-
         canvas = new Canvas(1800, myHeight);
 
         double scaleX = 1.32; // Scale factor for X-axis
@@ -136,8 +133,6 @@ public class VideoPlayerText extends Application {
 
             handlePlayKaraoke(newValue);
         });
-
-//        mediaPlayer.play();
 
         gc.setFill(Color.RED.darker());
         gc.setFont(font);
